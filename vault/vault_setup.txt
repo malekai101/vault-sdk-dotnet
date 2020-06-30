@@ -1,0 +1,6 @@
+vault auth enable approle
+vault policy write testdataread ~/Workspace/vault-sdk-test/vault/read_pol.hcl
+vault write auth/approle/role/pythonapp token_policies="testdataread" token_ttl=1h token_max_ttl=4h
+vault read auth/approle/role/pythonapp/role-id
+vault write -f auth/approle/role/pythonapp/secret-id
+vault kv put secret/testdata/universe theanswer=42
