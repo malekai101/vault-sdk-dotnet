@@ -1,11 +1,13 @@
 ﻿using System;
 using VaultSharp.V1.AuthMethods;
 using VaultSharp.V1.AuthMethods.AppRole;
+using VaultSharp.V1.SecretsEngines.Transit;
 using VaultSharp;
 using VaultSharp.V1.Commons;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Text.Json;
+using System.Text;
 
 namespace vault_sdk_dotnet
 {
@@ -32,7 +34,7 @@ namespace vault_sdk_dotnet
                 Console.WriteLine(String.Format("An error occurred authenticating: {0}", e.Message));
                 throw;
             }
-
+            /*
             try{
                 //Get the secret and print it
                 Secret<Dictionary<string, object>> kv1Secret = await vaultClient.V1.Secrets.KeyValue.V1.ReadSecretAsync("data/testdata/universe", "secret");
@@ -44,7 +46,28 @@ namespace vault_sdk_dotnet
                 //Failed to get the secret or format it.
                 Console.WriteLine(String.Format("An error pulling or parsing the secret: {0}", e.Message));
                 throw;
-            }          
+            } 
+            */
+            const string themessage  = "This is the message";
+            const string keyName = "orders";
+            const string context = "random";
+            try{
+                var encodedPlainText = Convert.ToBase64String(Encoding.UTF8.GetBytes(themessage));
+                var encodedContext = Convert.ToBase64String(Encoding.UTF8.GetBytes(context));
+
+                var encryptOptions = new EncryptRequestOptions
+                {
+                    Base64EncodedPlainText = encodedPlainText,
+                    Base64EncodedContext = encodedContext,
+                };
+
+                Secret<EncryptionResponse> encryptionResponse = await vaultClient.V1.Secrets.Transit.EncryptAsync(keyName, encryptOptions);
+                string cipherText = encryptionResponse.Data.CipherText;
+                Console.WriteLine(cipherText);
+            }
+            catch(Exception e){
+                Console.WriteLine($"Blammo!: {e.Message}");
+            }         
         }
     }
 }

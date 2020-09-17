@@ -1,7 +1,17 @@
 vault server --demo
 vault auth enable approle
-vault policy write testdataread ./read_pol.hcl
-vault write auth/approle/role/dotnetapp token_policies="testdataread" token_ttl=1h token_max_ttl=4h
 vault read auth/approle/role/dotnetapp/role-id
 vault write -f auth/approle/role/dotnetapp/secret-id
+
+
+For k/v
+
+vault secrets enable -version=2
+vault policy write testdataread ./read_pol.hcl
+vault write auth/approle/role/dotnetapp token_policies="testdataread" token_ttl=1h token_max_ttl=4h
 vault kv put secret/testdata/universe theanswer=42
+
+For Transit
+
+vault secrets enable transit
+vault write -f transit/keys/orders
