@@ -5,7 +5,6 @@ using VaultSharp.V1.SecretsEngines.Transit;
 using VaultSharp;
 using VaultSharp.V1.Commons;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Threading.Tasks;
 using System.Text.Json;
 using System.Text;
@@ -33,19 +32,31 @@ namespace vault_sdk_dotnet
             catch (Exception e)
             {
                 // Failed to get Vault token
-                Console.WriteLine(String.Format("An error occurred authenticating: {0}", e.Message));
+                Console.WriteLine($"An error occurred authenticating: {e.Message}");
                 throw;
             }
 
-            var record = new UserRecord()
+            if (args[0].ToUpper() == "ENCRYPT")
             {
-                Name = args[0].ToString(),
-                Job = args[1].ToString(),
-                SSN = await encrypt_text(vaultClient, args[2].ToString())
-            };
-            string jsonString = JsonSerializer.Serialize(record);
-            Console.WriteLine(jsonString);
-
+                var record = new UserRecord()
+                {
+                    Name = args[1].ToString(),
+                    Job = args[2].ToString(),
+                    SSN = await encrypt_text(vaultClient, args[3].ToString())
+                };
+                string jsonString = JsonSerializer.Serialize(record);
+                Console.WriteLine(jsonString);
+            }
+            else if (args[0].ToUpper() == "DECRYPT")
+            {
+                UserRecord import_record = JsonSerializer.Deserialize<UserRecord>(args[1].ToString());
+                Console.WriteLine(await decrypt_text(vaultClient, import_record.SSN));
+            }
+            else
+            {
+                Console.WriteLine($"Unknown command {args[0].ToUpper()}");
+            }
+            
 
             // string secret = await GetKVSecret(vaultClient); 
 
@@ -72,6 +83,34 @@ namespace vault_sdk_dotnet
                     await vaultClient.V1.Secrets.Transit.EncryptAsync(keyName, encryptOptions);
                 string cipherText = encryptionResponse.Data.CipherText;
                 return cipherText;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Blammo!: {e.Message}");
+                throw e;
+            }
+        }
+        
+        private static async Task<string> decrypt_text(IVaultClient vaultClient, string cipherText)
+        {
+            const string keyName = "orders";
+            const string context = "random";
+            try
+            {
+                // var encodedPlainText = Convert.ToBase64String(Encoding.UTF8.GetBytes(themessage));
+                var encodedContext = Convert.ToBase64String(Encoding.UTF8.GetBytes(context));
+
+                var decryptOptions = new DecryptRequestOptions
+                {
+                    CipherText = cipherText,
+                    Base64EncodedContext = encodedContext,
+                };
+
+                Secret<DecryptionResponse> decryptionResponse =
+                    await vaultClient.V1.Secrets.Transit.DecryptAsync(keyName, decryptOptions);
+                string encodedClearText = decryptionResponse.Data.Base64EncodedPlainText;
+                string clearText = Encoding.UTF8.GetString(Convert.FromBase64String(encodedClearText));
+                return clearText;
             }
             catch (Exception e)
             {

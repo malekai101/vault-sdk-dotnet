@@ -16,3 +16,8 @@ For Transit
 vault secrets enable transit
 vault policy write testdataread ./transit.hcl
 vault write -f transit/keys/orders
+
+To run the transit test you need to do the following:
+
+Set the ROLEID environmental variable to approle role id
+Set the VAULTSECRET environmental variable to approle secret id
